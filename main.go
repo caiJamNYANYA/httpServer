@@ -105,7 +105,7 @@ func main() {
 		var ipArgs []string
 		addrs, _ := net.InterfaceAddrs()//获取本地ip地址
 		for _, addr := range addrs {
-			if strings.HasPrefix(addr.String(), "192.168.1"/*匹配前缀，这是我家的ip网段*/) {
+			if strings.HasPrefix(addr.String(), "192.168.1"/*匹配前缀，我家的ip网段是一个192.168.1.x*/) {
 				ipArgs = append(ipArgs, strings.Split(addr.String(),"/")[0])//添加到数组
 			}
 		}
