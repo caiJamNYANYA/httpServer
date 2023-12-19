@@ -1,4 +1,4 @@
 ```bash
-go build main.go # 构建程序
-./main # 运行程序
+go build # 构建程序
+./shrd # 运行程序
 ```
