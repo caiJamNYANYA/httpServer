@@ -91,11 +91,7 @@ func main() {
 			pathName = "R0OT"//更改根目录的目标链接名
 		} else {
 			pathName = file//目标链接文件名
-			}
-		if pathName == "index.html" {//替换index.html,分防止浏览器使用该文件而显示不了文件列表
-			pathName = "index.html_file"
-			}
-		
+			}	
 		pathNameArgs = append(pathNameArgs, pathName)//添加文件名到数组
 	}
 
