@@ -17,4 +17,4 @@ go build
 ./shrd /bin -p 15532 ~/data download/ /usr/local/ 1234.mp3 # 分享多个目录、文件并监听在15532端口
 ```
 编译完成您可以将程序添加到bin目录或给程序所在的目录添加到PATH
-<center>**使用愉快**</center>
+**使用愉快**
