@@ -25,6 +25,6 @@ wget http://ip:port/file # 下载文件
 wget http://ip:port/path\?m=d # 下载打包文件……
 curl http://ip:port/path/ # 获取文件列表
 ```
-编译完成您建议将程序添加到bin目录或给程序所在的目录添加到PATH
+编译完成建议将程序添加到bin目录或给程序所在的目录添加到PATH
 
 **使用愉快**
