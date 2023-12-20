@@ -7,7 +7,8 @@
 git clone https://github.com/caiJamNYANYA/httpServer.git
 cd httpServer
 go build
-
+```
+```
 ##示例##
 ./shrd # 分享当前目录
 ./shrd -p 8080 # 分享当前目录监听在8080端口
