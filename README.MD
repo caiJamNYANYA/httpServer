@@ -4,7 +4,7 @@
 
 ```bash
 ##获取程序##
-git clone https://githubfast.com/caiJamNYANYA/httpServer.git
+git clone https://github.com/caiJamNYANYA/httpServer.git
 cd httpServer
 go build
 
