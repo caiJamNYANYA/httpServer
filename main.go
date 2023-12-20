@@ -4,8 +4,8 @@ import (
 	"io"
 	"fmt"
 	"flag"
-	"net"
-	"strings"
+//	"net"
+//	"strings"
 	"archive/tar"
 	"compress/gzip"
 	"math/rand"
@@ -168,16 +168,16 @@ func main() {
 	resultArray := argsFix(pathNameArgs)//将重名的链接名称添加前缀…………为什么不能放在for里面喵
 
 	for i := 1 ; i <= len(pathOrign) - 1; i++ {
-		 var ipArgs []string
+		 /*var ipArgs []string
 		 addrs, _ := net.InterfaceAddrs()//获取本地ip地址
 		 for _, addr := range addrs {
-			 if strings.HasPrefix(addr.String(), "192.168.1"/*匹配前缀，我家的ip网段是一个192.168.1.x*/) {
+			 if strings.HasPrefix(addr.String(), "192.168.1"/*匹配前缀，我家的ip网段是一个192.168.1.x*//*) {
 				 ipArgs = append(ipArgs, strings.Split(addr.String(),"/")[0])//添加到数组
 			 }
-		 }
+		 }*/
 
 		fmt.Println("\n\033[32m\u2605\033[34mfrom\t<--\x1b[1;0m",pathOrign[(i)])
-		downloadAddr := fmt.Sprintf("%s:%d/%s",ipArgs[0],port,pathNameArgs[(i - 1)])
+		downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[(i - 1)])
 		fmt.Println("\033[32m\u2605\033[34mto\t-->\x1b[1;0m",downloadAddr)
 		
 		fromPath := pathOrign[(i)]//链接原路径获取
