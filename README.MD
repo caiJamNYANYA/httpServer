@@ -8,7 +8,7 @@ git clone https://github.com/caiJamNYANYA/httpServer.git
 cd httpServer
 go build
 ```
-```
+```bash
 ##示例##
 ./shrd # 分享当前目录
 ./shrd -p 8080 # 分享当前目录监听在8080端口
@@ -17,7 +17,7 @@ go build
 ./shrd * # 分享当前目录下所有文件、文件夹（支持统配符）
 ./shrd -p 15532 ~/data /bin download/ /usr/local/ 1234.mp3 # 分享多个目录、文件并监听在15532端口
 ``` 
-```
+```bash
 ##可以在终端快速下载文件和打包成gz包的文件夹##
 wget http://ip:port/file # 下载文件
 wget http://ip:port/path\?m=d # 下载打包文件……
