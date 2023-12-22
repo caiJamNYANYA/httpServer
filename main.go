@@ -18,6 +18,7 @@ var homePath string//分享目录
 var tarPath string//tar储存目录
 var randomNumbr string//随机数
 var pathNameArgs []string//定义路径最后一级名称的数组
+var pathNameArgsFix []string//定义路径最后一级名称重复加前缀的数组
 var pathOrign []string//定义原始输入路径的数组
 
 
@@ -46,34 +47,7 @@ func rm(filePath string) error {//移除函数，用于停止后移除共享文�
 	return os.RemoveAll(filePath)
 }
 
-func createTar(srcFolder, tarFilePath, pathName string) error {//创建单个文件夹到tar
-	tarFile, _ := os.Create(tarFilePath)
-	defer tarFile.Close()
-	gzipWriter := gzip.NewWriter(tarFile)
-	defer gzipWriter.Close()
-	tarWriter := tar.NewWriter(gzipWriter)
-	defer tarWriter.Close()
-	srcInfo, err := os.Stat(srcFolder)
-	if !srcInfo.IsDir() {
-		return fmt.Errorf("%s 不是一个文件夹", srcFolder)
-	}
-	filepath.Walk(srcFolder, func(filePath string, file os.FileInfo, err error) error {
-		relativePath, _ := filepath.Rel(srcFolder, filePath)
-		tarPath := filepath.Join(pathName, relativePath)
-		header, _ := tar.FileInfoHeader(file, "")
-		header.Name = tarPath
-		tarWriter.WriteHeader(header); 
-		if !file.IsDir() {
-			fileContent, _ := os.Open(filePath)
-			defer fileContent.Close()
-			io.Copy(tarWriter, fileContent)
-		}
-		return nil
-	})
-	return err
-}
-
-func tarGzFiles(outputFile string, files []string) error {//创建多个文件夹到tar
+func tarGzFiles(outputFile string, files []string) error {//tar.gz压缩
 	tarFile, err := os.Create(outputFile)
 	if err != nil {
 		return err
@@ -134,13 +108,10 @@ func main() {
 				}
 
 	for _, value := range pathArgs {//读取数组获取绝对路径
-		// var absDir string
-		absDir, err := filepath.Abs(value)
-		fmt.Sprintln(err)//没有会报错没有使用该变量
-
-		fileInfo, err := os.Stat(absDir)//检查绝对路径是否有效，只输出有效路径
-		if err != nil {//该路径不存在时输出
-		fmt.Sprintln("无法获取文件信息:", err, fileInfo)
+		absDir, _ := filepath.Abs(value)
+		_, err := os.Stat(absDir)//检查绝对路径是否有效，只输出有效路径
+		if err != nil {
+			//该路径不存在
 		} else {
 		 pathOrign = append(pathOrign,absDir)//将有效的路径存储进pathOrign数组
 		}
@@ -154,10 +125,9 @@ func main() {
 
 	for i := 1 ; i <= len(pathOrign) - 1/*因为数组第0个元素是程序名称，所有原来数组长度为输入的路径+1,如果路径个数为1时，只需要循环一此，以此类推*/; i++ {
 		fromPath := pathOrign[(i)]//读取需要链接的原始路径
-		file := ""
 		dir, file := filepath.Split(fromPath)//判断路径类型；避免bug出现
 		var pathName string
-		if dir == "/" && file == "" {//unix类系统的/是非法文件名，所以直接给根目录创建链接会出错
+		if dir == "/" && file == "" {//unix类系统的/作为路径分隔符是唯一不能用作文件名的字符，所以直接以/为名称给根目录创建链接会出错
 			pathName = "R0OT"//更改根目录的目标链接名
 		} else {
 			pathName = file//目标链接文件名
@@ -165,30 +135,33 @@ func main() {
 		pathNameArgs = append(pathNameArgs, pathName)//添加文件名到数组
 	}
 
-	resultArray := argsFix(pathNameArgs)//将重名的链接名称添加前缀…………为什么不能放在for里面喵
+	pathNameArgsFix = argsFix(pathNameArgs)//将重名的链接名称添加前缀…………为什么不能放在for里面喵
 
 	for i := 1 ; i <= len(pathOrign) - 1; i++ {
 		 /*var ipArgs []string
 		 addrs, _ := net.InterfaceAddrs()//获取本地ip地址
 		 for _, addr := range addrs {
-			 if strings.HasPrefix(addr.String(), "192.168.1"/*匹配前缀，我家的ip网段是一个192.168.1.x*//*) {
+			 if strings.HasPrefix(addr.String(), "192.168.1"/*匹配前缀，我家的ip网段是一个192.168.1.x请自行修改*//*) {
 				 ipArgs = append(ipArgs, strings.Split(addr.String(),"/")[0])//添加到数组
 			 }
-		 }*/
+		 }
+		 //需要导入net包和strings包	
+		 */
 
 		fmt.Println("\n\033[32m\u2605\033[34mfrom\t<--\x1b[1;0m",pathOrign[(i)])
-		downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[(i - 1)])
+		downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[(i - 1)])//根据自己的网络修改吧～
 		fmt.Println("\033[32m\u2605\033[34mto\t-->\x1b[1;0m",downloadAddr)
 		
 		fromPath := pathOrign[(i)]//链接原路径获取
-		toPath := fmt.Sprintf("%s/%s",homePath,resultArray[(i - 1 )])//链接目录路径
+		toPath := fmt.Sprintf("%s/%s",homePath,pathNameArgsFix[(i - 1 )])//链接目录路径
 		err := os.Symlink(fromPath, toPath)//创建链接
 		if err != nil {
+			rm(homePath)
 			panic(err)
 		}
 	}
 	
-	sigChan := make(chan os.Signal, 1)//用于退出时清理共享文件夹监听ctrl+c
+	sigChan := make(chan os.Signal, 1)//用于退出时清理共享文件夹;监听ctrl+c
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGINT)
 	go func() {//退出时执行的
 		<-sigChan
@@ -200,40 +173,32 @@ func main() {
 			}
 		os.Exit(0)
 	}()
-	// fileServer := http.FileServer(http.Dir(homePath))
-	// fmt.Println(fileServer)
 	http.HandleFunc("/", handler)//挂载根目录
 	address := fmt.Sprintf(":%d", port)//http监听地址:端口
 	fmt.Printf("\n\033[34mHTTP%s @ %s\n\n\033[0m", address, homePath)
-	sttr := http.ListenAndServe(address, nil)//开启http服务
-	if sttr != nil {
+	err := http.ListenAndServe(address, nil)//开启http服务
+	if err != nil {
 		if rm(homePath) != nil {//移除共享文件夹
-			} else {
-				fmt.Printf("\n\x1b[1;31mPort Error")
-				fmt.Println("\nRemove done!",randomNumbr)
-				os.Exit(1)
-			}
+		} else {
+			fmt.Printf("\n\x1b[1;31mPort Error")
+			fmt.Println("\nRemove done!",randomNumbr)
+			os.Exit(1)
+		}
 	}
 	select {}
 }
 
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("请求路径：%s\n", r.URL.Path)//打印请求
-	
-	var path string
-	data := (homePath + r.URL.Path) // 获取添加到tar的文件或目录的信息
-	fileInfo, _ := os.Stat(data)
-	if fileInfo.Mode().IsDir() {
-		path = data
-	}
-	if r.URL.Query().Get("m") == "d" {//重定向tar.gz压缩包
+	fmt.Println("\033[35m请求路径:\t", r.URL.Path, "\n\033[0m")//打印请求
+	path := (homePath + r.URL.Path) // 获取添加到tar的目录的信息
+	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("mode") == "tar.gz" {//重定向tar.gz压缩包
 		var linkPath string//获取软链接路径到原始路径使用的变量
 		var folderPath string
 		var tarFrom []string//tar文件创建的输入
 		Dir, File := filepath.Split(path)//因为“os.Readlink”函数匹配的路径末尾不能有/
 		if Dir == homePath + "/" && File == "" {//下载根目录
-			for _, pname := range pathNameArgs {
+			for _, pname := range pathNameArgsFix {
 				Path := homePath + "/" + pname
 				folderPath ,_ := os.Readlink(Path)//软链接里面的文件夹能正常被压缩，这里获取软链接文件的对应的原始路径
 				linkPath = folderPath
@@ -241,19 +206,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			//	fmt.Println("\033[32m",pname,"\033[0m")
 			//	fmt.Println("A")
 			}
-		} else if File == "" {//如果请求的末尾有斜杠将不会输出File变量
+		} else if File == "" {//下载单个文件夹，如果请求的末尾有斜杠将不会输出File变量,这个是给目录准备的，所以打包下载文件时就不要手贱加/了
 			linkPath = Dir[:len(Dir)-1]//将/删掉
-			folderPath ,_ = os.Readlink(linkPath)//获取软链接的原始路径
+			folderPath ,_ = os.Readlink(linkPath)
 			if folderPath == "" { 
 				linkPath = linkPath
 			} else {
 				linkPath = folderPath
 			}
-			tarFrom = append(tarFrom, folderPath)
+			tarFrom = append(tarFrom, linkPath)
 		//	fmt.Println("B")
 
-		} else {
-			folderPath ,_ := os.Readlink(path)//这里获取软链接的原始路径
+		} else {//下载单个文件夹
+			folderPath ,_ := os.Readlink(path)
 			if folderPath == "" {
 				linkPath = path
 			} else {
@@ -265,35 +230,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	//	fmt.Println("LinkPath",linkPath,"\tFolderPath",folderPath)
 
 		_, pathName := filepath.Split(linkPath)
+		if Dir == homePath + "/" && File == "" {
+			pathName = "Nyanya"//跟上面一样，不要这里虽然不会出错，但是文件变成只有扩展名的就很奇怪
+		} else {
+			pathName = pathName
+		}
 		var tarTo string//tar文件目标路径
 		var fileName string//302重定向文件名
-		if len(tarFrom) == 1 {//下载单个文件夹时
 			fileName = pathName + ".tar.gz"
 			tarTo = tarPath + "/" + fileName
-			err := createTar(linkPath, tarTo, pathName)
-			if err != nil {
-				fmt.Println("Error:", err)
-			} else {
-				fmt.Println("Tar.gz已就绪:", tarTo)
-			}
-		} else {//下载根目录时
-			fileName = "Nyanya" + ".tar.gz"
-			tarTo = tarPath + "/" + fileName//也许能换个名字……
 			err := tarGzFiles(tarTo, tarFrom)
 			if err != nil {
 				fmt.Println("Error:", err)
-				return 
+				return
+			} else {
+				fmt.Println("\x1b[1;32mTar.gz已就绪\t", tarTo,"\n\033[0m")
 			}
-			fmt.Println("Tar.gz已就绪", tarTo)
-		}
-	
-
-		
 		fileURL := "/" + randomNumbr + "/" + fileName//设置重定向的链接
 		w.Header().Set("Location", fileURL)
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 		w.WriteHeader(http.StatusFound) // 使用302状态码进行重定向
-
 
 	} else {//静态文件列表
 		fileServer := http.FileServer(http.Dir(homePath))
