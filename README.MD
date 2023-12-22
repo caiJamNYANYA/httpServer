@@ -1,10 +1,10 @@
 # 介绍
 做这个软件主要为了在局域网内快速的分享文件到其他设备(有公网的话也可以远程分享)，原理是在一个文件夹内创建符号链接文件，然后在这个文件夹启动http静态文件服务，所以…………
 还有……chatgpt真好用
-### 此程序仅使用于unix类系统，不支持windows！！
+### 软件不支持windows！！
 
 ```bash
-##获取程序##
+##获取##
 git clone https://github.com/caiJamNYANYA/httpServer.git
 cd httpServer
 go build
@@ -22,7 +22,7 @@ go build
 ```bash
 ##可以在终端快速下载文件和打包成gz包的文件夹##
 wget http://ip:port/file # 下载文件
-wget http://ip:port/path/(dir/ || file)\?m=gz # (mode=tar.gz)下载压缩打包文件夹……文件也是可以的压缩的
+wget http://ip:port/path/(dir/ || file)\?m=t # (?m=t || ?m=gz || ?m=tgz)下在打包或者打包并压缩文件夹……文件也是可以的
 curl http://ip:port/path -L # 获取文件列表
 ```
 编译完成建议将程序添加到bin目录或给程序所在的目录添加到PATH

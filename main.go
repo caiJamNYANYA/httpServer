@@ -47,21 +47,20 @@ func rm(filePath string) error {//移除函数，用于停止后移除共享文�
 	return os.RemoveAll(filePath)
 }
 
-func tarGzFiles(outputFile string, files []string) error {//tar.gz压缩
-	tarFile, err := os.Create(outputFile)
-	if err != nil {
-		return err
-	}
+func tarGzFiles(gz bool, outputFile string, files []string) error {
+	tarFile, _ := os.Create(outputFile)
 	defer tarFile.Close()
-	gzWriter := gzip.NewWriter(tarFile)
-	defer gzWriter.Close()
-	tarWriter := tar.NewWriter(gzWriter)
+	var tarWriter *tar.Writer
+	if gz {//判断是否需要压缩gzip
+		gzWriter := gzip.NewWriter(tarFile)
+		defer gzWriter.Close()
+		tarWriter = tar.NewWriter(gzWriter)
+	} else {
+		tarWriter = tar.NewWriter(tarFile)
+	}
 	defer tarWriter.Close()
 	for _, file := range files {
-		err := filepath.Walk(file, func(path string, info os.FileInfo, err  error) error {
-			if err != nil {
-				return err
-			}
+		filepath.Walk(file, func(path string, info os.FileInfo, err error) error {
 			header, _ := tar.FileInfoHeader(info, info.Name())
 			relPath, _ := filepath.Rel(filepath.Dir(file), path)
 			header.Name = relPath
@@ -74,9 +73,6 @@ func tarGzFiles(outputFile string, files []string) error {//tar.gz压缩
 			io.Copy(tarWriter, fileToWrite)
 			return nil
 		})
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -192,15 +188,15 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("\033[35m请求路径:\t", r.URL.Path, "\n\033[0m")//打印请求
 	path := (homePath + r.URL.Path) // 获取添加到tar的目录的信息
-	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("mode") == "tar.gz" {//重定向tar.gz压缩包
+	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("m") == "t" || r.URL.Query().Get("m") == "tgz" {//重定向tar.gz压缩包
 		var linkPath string//获取软链接路径到原始路径使用的变量
 		var folderPath string
 		var tarFrom []string//tar文件创建的输入
-		Dir, File := filepath.Split(path)//因为“os.Readlink”函数匹配的路径末尾不能有/
+		Dir, File := filepath.Split(path)//判断路径是否有/符号因为“os.Readlink”函数匹配的路径末尾不能有/
 		if Dir == homePath + "/" && File == "" {//下载根目录
 			for _, pname := range pathNameArgsFix {
 				Path := homePath + "/" + pname
-				folderPath ,_ := os.Readlink(Path)//软链接里面的文件夹能正常被压缩，这里获取软链接文件的对应的原始路径
+				folderPath ,_ := os.Readlink(Path)//软链接里面的文件夹能正常被打包，这里获取软链接文件的对应的原始路径
 				linkPath = folderPath
 				tarFrom = append(tarFrom, linkPath)
 			//	fmt.Println("\033[32m",pname,"\033[0m")
@@ -231,20 +227,29 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		_, pathName := filepath.Split(linkPath)
 		if Dir == homePath + "/" && File == "" {
-			pathName = "Nyanya"//跟上面一样，不要这里虽然不会出错，但是文件变成只有扩展名的就很奇怪
+			pathName = "Nyanya"//跟上面一样，删掉这里虽然不会出错，但是文件变成只有扩展名的就很奇怪
 		} else {
 			pathName = pathName
 		}
 		var tarTo string//tar文件目标路径
 		var fileName string//302重定向文件名
+		var gz bool//判断是否要使用gz压缩
+		if r.URL.Query().Get("m") == "t" {
+			fileName = pathName + ".tar"
+		} else if r.URL.Query().Get("m") == "gz" {
 			fileName = pathName + ".tar.gz"
+			gz = true
+		} else if r.URL.Query().Get("m") == "tgz" { //如果你要觉得tar.gz扩展名不好看……
+			fileName = pathName + ".tgz"
+			gz = true
+		}
 			tarTo = tarPath + "/" + fileName
-			err := tarGzFiles(tarTo, tarFrom)
+			err := tarGzFiles(gz, tarTo, tarFrom)
 			if err != nil {
 				fmt.Println("Error:", err)
 				return
 			} else {
-				fmt.Println("\x1b[1;32mTar.gz已就绪\t", tarTo,"\n\033[0m")
+				fmt.Println("\x1b[1;32m归档已就绪\t", tarTo,"\n\033[0m")
 			}
 		fileURL := "/" + randomNumbr + "/" + fileName//设置重定向的链接
 		w.Header().Set("Location", fileURL)
