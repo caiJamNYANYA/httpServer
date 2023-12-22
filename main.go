@@ -184,7 +184,6 @@ func main() {
 	select {}
 }
 
-
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("\033[35m请求路径:\t", r.URL.Path, "\n\033[0m")//打印请求
 	path := (homePath + r.URL.Path) // 获取添加到tar的目录的信息
