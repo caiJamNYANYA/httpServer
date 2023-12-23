@@ -1,8 +1,7 @@
 # 介绍
 做这个软件主要为了在局域网内快速的分享文件到其他设备(有公网的话也可以远程分享)，原理是在一个文件夹内创建符号链接文件，然后在这个文件夹启动http静态文件服务，所以…………
 还有……chatgpt真好用
-### 软件不支持windows！！
-
+### 使用 （软件不支持windows！！）
 ```bash
 ##获取##
 git clone https://github.com/caiJamNYANYA/httpServer.git
@@ -11,7 +10,7 @@ go build
 
 ```
 ```bash
-##示例##
+##分享##
 ./shrd # 分享当前目录
 ./shrd -p 8080 # 分享当前目录监听在8080端口
 ./shrd /home/yuki.n # 分享一个目录
