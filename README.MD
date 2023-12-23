@@ -20,9 +20,9 @@ go build
 ./shrd -p 15532 ~/data /bin download/ /usr/local/ 1234.mp3 # 分享多个目录、文件并监听在15532端口
 ``` 
 ```bash
-##可以在终端快速下载文件和打包成tar或者压缩成tar.gz包的文件夹##
+##可以在终端快速下载文件和打包成tar或者压缩过的tar包的文件夹##
 wget http://ip:port/file # 下载文件
-wget http://ip:port/path/(dir/ || file)\?m=t # (?m=t || ?m=gz || ?m=tgz)下在打包或者打包并压缩文件夹……文件也是可以的
+wget http://ip:port/path/(dir/ || file)\?m=t # (?m=t || ?m=gz || ?m=xz)下在打包或者打包并压缩文件夹……文件也是可以的
 curl http://ip:port/path -L # 获取文件列表
 ```
 编译完成建议将程序添加到bin目录或给程序所在的目录添加到PATH
