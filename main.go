@@ -8,6 +8,7 @@ import (
 //	"strings"
 	"archive/tar"
 	"compress/gzip"
+	"github.com/ulikunitz/xz"
 	"math/rand"
 	"path/filepath"
 	"syscall"
@@ -47,15 +48,20 @@ func rm(filePath string) error {//移除函数，用于停止后移除共享文�
 	return os.RemoveAll(filePath)
 }
 
-func tarGzFiles(gz bool, outputFile string, files []string) error {
+func tarGzFiles(tarType, outputFile string, files []string) error {
 	tarFile, _ := os.Create(outputFile)
 	defer tarFile.Close()
 	var tarWriter *tar.Writer
-	if gz {//判断是否需要压缩gzip
-		gzWriter := gzip.NewWriter(tarFile)
-		defer gzWriter.Close()
-		tarWriter = tar.NewWriter(gzWriter)
-	} else {
+	switch tarType {
+	case "gz" ://判断是否需要使用gzip压缩
+		Writer := gzip.NewWriter(tarFile)
+		defer Writer.Close()
+		tarWriter = tar.NewWriter(Writer)
+	case "xz" ://判断是否需要使用xzip压缩
+		Writer, _ := xz.NewWriter(tarFile)
+		defer Writer.Close()
+		tarWriter = tar.NewWriter(Writer)
+	case "t" :
 		tarWriter = tar.NewWriter(tarFile)
 	}
 	defer tarWriter.Close()
@@ -187,7 +193,7 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("\033[35m请求路径:\t", r.URL.Path, "\n\033[0m")//打印请求
 	path := (homePath + r.URL.Path) // 获取添加到tar的目录的信息
-	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("m") == "t" || r.URL.Query().Get("m") == "tgz" {//重定向tar.gz压缩包
+	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("m") =="xz" || r.URL.Query().Get("m") == "t" || r.URL.Query().Get("m") == "tgz" {//重定向tar.gz压缩包
 		var linkPath string//获取软链接路径到原始路径使用的变量
 		var folderPath string
 		var tarFrom []string//tar文件创建的输入
@@ -232,18 +238,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		var tarTo string//tar文件目标路径
 		var fileName string//302重定向文件名
-		var gz bool//判断是否要使用gz压缩
-		if r.URL.Query().Get("m") == "t" {
-			fileName = pathName + ".tar"
-		} else if r.URL.Query().Get("m") == "gz" {
+		var tarType string
+		switch r.URL.Query().Get("m") {
+		case "gz" :
+			tarType = "gz"
 			fileName = pathName + ".tar.gz"
-			gz = true
-		} else if r.URL.Query().Get("m") == "tgz" { //如果你要觉得tar.gz扩展名不好看……
-			fileName = pathName + ".tgz"
-			gz = true
+		case "xz" :
+			tarType = "xz"
+			fileName = pathName + ".tar.xz"
+		case "t" :
+			tarType = "t"
+			fileName = pathName + ".tar"
 		}
 			tarTo = tarPath + "/" + fileName
-			err := tarGzFiles(gz, tarTo, tarFrom)
+			err := tarGzFiles(tarType, tarTo, tarFrom)
 			if err != nil {
 				fmt.Println("Error:", err)
 				return
