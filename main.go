@@ -98,14 +98,17 @@ func main() {
 
 	pathArgs := make([]string, 2)//定义存储路径的数组；长度为2用于没有输入参数时定义默认值
 	if (len(os.Args) == 1/*数组第0个元素默认是启动程序*/) || (os.Args[1] == "-p" && len(os.Args) == 3/*加了port参数-p之后长度变成3*/) {
+		os.Args[0] = ""
 		copy(pathArgs, os.Args)//获取原来数组
 		pathArgs[1] = "."//定义默认路径为当前目录
 		} else if os.Args[1] == "-p"/*使用了端口值并且使用了路径时*/ {
+			os.Args[0] = ""
 			copy(pathArgs, os.Args)
 			pathArgs = os.Args
 			pathArgs[1] = randomString(12)//将-p参数替换为随机字符一次，以防将当前目录下与-p同名的文件夹给分享出去……
 			pathArgs[2] = randomString(12)//将端口这一参数替换为随机的字符串，以防将目录下与端口名称一样的目录给分享出去……
 			} else {
+				os.Args[0] = ""
 				pathArgs = os.Args//只使用了路径参数时
 				}
 
@@ -119,6 +122,8 @@ func main() {
 		}
 	}
 
+
+//	fmt.Println("\033[31m",os.Args,"\033[32m\t\t",pathOrign,"\n")
 	if (len(pathOrign)) == 1 {//如果没有一个正确路径时退出程序，如果想使用空目录并手动添加文件可以删掉这段……
 		fmt.Println("\n\x1b[1;31mNo file input")
 		rm(homePath)//清除分享目录
