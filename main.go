@@ -95,7 +95,7 @@ func main() {
 	var port int
 	flag.IntVar(&port, "p", 5050, "listen port")//端口参数获取
 	flag.Parse()//更新参数变量
-	
+
 	fmt.Printf("\u2606Http Server\u2606\n")
 
 	randomNumbr = fmt.Sprintf("____%s",randomString(12))//共享文件夹名称
@@ -145,7 +145,7 @@ func main() {
 			pathName = "R0OT"//更改根目录的目标链接名
 		} else {
 			pathName = file//目标链接文件名
-		}	
+		}
 		pathNameArgs = append(pathNameArgs, pathName)//添加文件名到数组
 	}
 
@@ -159,13 +159,13 @@ func main() {
 				 ipArgs = append(ipArgs, strings.Split(addr.String(),"/")[0])//添加到数组
 			 }
 		 }
-		 //需要导入net包和strings包	
+		 //需要导入net包和strings包
 		 */
 
 		fmt.Println("\n\033[32m\u2605\033[34mfrom\t<--\x1b[1;0m",pathOrign[(i)])
 		downloadAddr := fmt.Sprintf("192.168.1.10:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[(i - 1)])//根据自己的网络修改吧～
 		fmt.Println("\033[32m\u2605\033[34mto\t-->\x1b[1;0m",downloadAddr)
-		
+
 		fromPath := pathOrign[(i)]//链接原路径获取
 		toPath := fmt.Sprintf("%s/%s",homePath,pathNameArgsFix[(i - 1 )])//链接目录路径
 		err := os.Symlink(fromPath, toPath)//创建链接
@@ -174,7 +174,7 @@ func main() {
 			panic(err)
 		}
 	}
-	
+
 	sigChan := make(chan os.Signal, 1)//用于退出时清理共享文件夹;监听ctrl+c
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGINT)
 	go func() {//退出时执行的
@@ -211,7 +211,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		var linkPath string//获取软链接路径到原始路径使用的变量
 		var folderPath string
 		var tarFrom []string//tar文件创建的输入
-		
+
 		Dir, File := filepath.Split(path)//判断路径是否有/符号因为“os.Readlink”函数匹配的路径末尾不能有/
 		if Dir == homePath + "/" && File == "" {//下载根目录
 			for _, pname := range pathNameArgsFix {
@@ -320,8 +320,8 @@ h1 {
 }
 </style>
 `))
-			w.Write([]byte("<style='display:none'\033[35m>\n\n<ul><a href=\"../\">../</a></ul>\n"))
-			
+			w.Write([]byte("<style='display:none'\033[35m>\n\n\n" + r.URL.Path + "\n<ul><a href=\"../\">../</a></ul>\n"))
+
 			var dirLink []string
 			var fileLink []string
 			var dirName []string
@@ -366,7 +366,7 @@ h1 {
 		//你要用来做html网页服务器可以删掉上面的
 		//fileServer := http.FileServer(http.Dir(homePath))
 		//fileServer.ServeHTTP(w, r)
-		
+
 	}
 
 }
