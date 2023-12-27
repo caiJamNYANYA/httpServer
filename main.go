@@ -4,10 +4,12 @@ import (
 	"io"
 	"fmt"
 	// "path"
+	"sort"
 	"flag"
-	"embed"
+	"embed"	
+	"bufio"
 	// "net"
-	// "strings"
+	"strings"
 	"archive/tar"
 	"compress/gzip"
 	"math/rand"
@@ -29,6 +31,7 @@ var pathNameArgs []string//定义路径最后一级名称的数组
 var pathNameArgsFix []string//定义路径最后一级名称重复加前缀的数组
 var pathOrign []string//定义原始输入路径的数组
 
+var clr = [...]int{219,171,213,202,220,208,217,183,211,195,223,225,229,85,86,123,153,189,117,105,177,175,204,218}//这啥呀(_^_)_这是
 
 func argsFix(arr []string) []string {//为聪明文件名加前缀，以防重名然后出现bug
 	countMap := make(map[string]int)
@@ -42,9 +45,8 @@ func argsFix(arr []string) []string {//为聪明文件名加前缀，以防重�
 	return arr
 }
 
-
 func randomString(length int) string {//随机字符，，
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const charset = "abcdefABCDEF0123456789"
 	b := make([]byte, length)
 	for i := range b {
 		b[i] = charset[rand.Intn(len(charset))]
@@ -96,28 +98,45 @@ func main() {
 	flag.IntVar(&port, "p", 5050, "listen port")//端口参数获取
 	flag.Parse()//更新参数变量
 
-	fmt.Printf("\u2606Http Server\u2606\n")
-
+	for _, text := range fmt.Sprintln("HttpServer") {
+		fmt.Printf("\x1b[38;5;%dm%c",clr[rand.Intn(len(clr))],text)
+	//	fmt.Printf("\u2606Http Server\u2606\n")
+	}
 	randomNumbr = fmt.Sprintf("____%s",randomString(12))//共享文件夹名称
 	homePath = fmt.Sprintf("%s/%s",os.Getenv("HOME"),randomNumbr)//共享文件夹绝对路径
 	os.Mkdir(homePath, os.ModePerm)//创建共享文件夹
 	tarPath = fmt.Sprintf("%s/%s",homePath,randomNumbr)//共享
 	os.Mkdir(tarPath, os.ModePerm)
+		
+	// 打印接收到的数据
 
 	pathArgs := make([]string, 2)//定义存储路径的数组；长度为2用于没有输入参数时定义默认值
-	if (len(os.Args) == 1/*数组第0个元素默认是启动程序*/) || (os.Args[1] == "-p" && len(os.Args) == 3/*加了port参数-p之后长度变成3*/) {
-		os.Args[0] = ""
-		copy(pathArgs, os.Args)//获取原来数组
+
+	stat, _ := os.Stdin.Stat()
+	var Args []string
+	if (stat.Mode() & os.ModeCharDevice) == 0 {//通过管道获取参数
+		scanner := bufio.NewScanner(os.Stdin)
+		var inputLines []string
+		for scanner.Scan() {
+			inputLines = append(inputLines, scanner.Text())
+			Args = append(os.Args,inputLines...)
+		}
+	} else {
+		Args = os.Args
+	}
+
+
+	if (len(Args) == 1/*数组第0个元素默认是启动程序*/) || (Args[1] == "-p" && len(Args) == 3/*加了port参数-p之后长度变成3*/) {
+		Args[0] = ""
 		pathArgs[1] = "."//定义默认路径为当前目录
-	} else if os.Args[1] == "-p"/*使用了端口值并且使用了路径时*/ {
-		os.Args[0] = ""
-		copy(pathArgs, os.Args)
-		pathArgs = os.Args
+	} else if Args[1] == "-p"/*使用了端口值并且使用了路径时*/ {
+		Args[0] = ""
+		pathArgs = Args
 		pathArgs[1] = randomString(12)//将-p参数替换为随机字符一次，以防将当前目录下与-p同名的文件夹给分享出去……
 		pathArgs[2] = randomString(12)//将端口这一参数替换为随机的字符串，以防将目录下与端口名称一样的目录给分享出去……
 	} else {
-		os.Args[0] = ""
-		pathArgs = os.Args//只使用了路径参数时
+		Args[0] = ""
+		pathArgs = Args//只使用了路径参数时
 	}
 
 	for _, value := range pathArgs {//读取数组获取绝对路径
@@ -130,15 +149,15 @@ func main() {
 		}
 	}
 
-//	fmt.Println("\033[31m",os.Args,"\033[32m\t\t",pathOrign,"\n")
+//	fmt.Println("\033[31m",os.Args,"\x1b[38;5;85m\t\t",pathOrign,"\n")
 	if (len(pathOrign)) == 1 {//如果没有一个正确路径时退出程序，如果想使用空目录并手动添加文件可以删掉这段……
-		fmt.Println("\n\x1b[1;31mNo file input")
+		fmt.Println("\n\x1b[38;5;211mNo file input (_^_)_")
 		rm(homePath)//清除分享目录
 		os.Exit(1)
 	}
 
 	for i := 1 ; i <= len(pathOrign) - 1/*因为数组第0个元素是程序名称，所有原来数组长度为输入的路径+1,如果路径个数为1时，只需要循环一此，以此类推*/; i++ {
-		fromPath := pathOrign[(i)]//读取需要链接的原始路径
+		fromPath := pathOrign[i]//读取需要链接的原始路径
 		dir, file := filepath.Split(fromPath)//判断路径类型；避免bug出现
 		var pathName string
 		if dir == "/" && file == "" {//unix类系统的/作为路径分隔符是唯一不能用作文件名的字符，所以直接以/为名称给根目录创建链接会出错
@@ -162,12 +181,12 @@ func main() {
 		 //需要导入net包和strings包
 		 */
 
-		fmt.Println("\n\033[32m\u2605\033[34mfrom\t<--\x1b[1;0m",pathOrign[(i)])
-		downloadAddr := fmt.Sprintf("192.168.1.10:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[(i - 1)])//根据自己的网络修改吧～
-		fmt.Println("\033[32m\u2605\033[34mto\t-->\x1b[1;0m",downloadAddr)
+		fmt.Printf("\n\x1b[38;5;85m\u2605\x1b[38;5;159mfrom\t<--\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],pathOrign[i])
+		downloadAddr := fmt.Sprintf("192.168.1.20:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[i-1])//根据自己的网络修改吧～
+		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],downloadAddr)
 
-		fromPath := pathOrign[(i)]//链接原路径获取
-		toPath := fmt.Sprintf("%s/%s",homePath,pathNameArgsFix[(i - 1 )])//链接目录路径
+		fromPath := pathOrign[i]//链接原路径获取
+		toPath := fmt.Sprintf("%s/%s",homePath,pathNameArgsFix[i-1])//链接目录路径
 		err := os.Symlink(fromPath, toPath)//创建链接
 		if err != nil {
 			rm(homePath)
@@ -181,22 +200,23 @@ func main() {
 		<-sigChan
 		if rm(homePath) != nil {//移除共享文件夹
 
-		fmt.Printf("\n\x1b[1;31mRemove RRROR")
+		fmt.Printf("\n\x1b[38;5;211mRemove RRROR (@_@)")
 		} else {
-			fmt.Println("\n\x1b[1;32mRemove done!",randomNumbr)
+			fmt.Println("\n\x1b[38;5;85mRemove done （￣▽￣）",randomNumbr)
 			}
 		os.Exit(0)
 	}()
 	http.HandleFunc("/", handler)//挂载根目录
 	http.HandleFunc("/favicon.ico", serveFavicon)
 	address := fmt.Sprintf(":%d", port)//http监听地址:端口
-	fmt.Printf("\n\033[34mHTTP%s @ %s\n\n\033[0m", address, homePath)
+	fmt.Printf("\n\x1b[38;5;85mHTTP%s @ %s (・o・)\n\n\033[0m", address, homePath)
+	fmt.Printf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))])
 	err := http.ListenAndServe(address, nil)//开启http服务
 	if err != nil {
 		if rm(homePath) != nil {//移除共享文件夹
 		} else {
-			fmt.Printf("\n\x1b[1;31mPort Error")
-			fmt.Println("\nRemove done!",randomNumbr)
+			fmt.Printf("\n\x1b[38;5;211mPort Error ≡≡ﾍ( ´Д`)ﾉ")
+			fmt.Println("\nRemove done (゜o゜)",randomNumbr)
 			os.Exit(1)
 		}
 	}
@@ -205,9 +225,9 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("\033[35m请求路径:\t", r.URL.Path, "\n\033[0m")//打印请求
 	path := (homePath + r.URL.Path) // 获取添加到tar的目录的信息
 	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("m") =="xz" || r.URL.Query().Get("m") == "t" || r.URL.Query().Get("m") == "tgz" {//重定向tar.gz压缩包
+		fmt.Printf("\x1b[38;5;%dm请求路径 (:\t%s\n", clr[rand.Intn(len(clr))],r.URL.Path)//打印请求
 		var linkPath string//获取软链接路径到原始路径使用的变量
 		var folderPath string
 		var tarFrom []string//tar文件创建的输入
@@ -219,7 +239,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 				folderPath ,_ := os.Readlink(Path)//软链接里面的文件夹能正常被打包，这里获取软链接文件的对应的原始路径
 				linkPath = folderPath
 				tarFrom = append(tarFrom, linkPath)
-			//	fmt.Println("\033[32m",pname,"\033[0m")
+			//	fmt.Println("\x1b[38;5;85m",pname,"\033[0m")
 			//	fmt.Println("A")
 			}
 		} else if File == "" {//下载单个文件夹，如果请求的末尾有斜杠将不会输出File变量,这个是给目录准备的，所以打包下载文件时就不要手贱加/了
@@ -271,7 +291,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Error:", err)
 			return
 		} else {
-			fmt.Println("\x1b[1;32m归档已就绪\t", tarTo,"\n\033[0m")
+			fmt.Println("\x1b[38;5;85m已就绪 (>ω<)\t" + fileName + "\033[0m")
 		}
 		fileURL := "/" + randomNumbr + "/" + fileName//设置重定向的链接
 		w.Header().Set("Location", fileURL)
@@ -279,10 +299,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound) // 使用302状态码进行重定向
 
 	} else {//主要成分！？
-		fileInfo, _ := os.Lstat(path)
+		fileInfo, err := os.Lstat(path)
+			if err != nil {
+				fmt.Printf("\x1b[38;5;%dm请求路径 ):\t%s\n", clr[rand.Intn(len(clr))],r.URL.Path)//打印请求
+				fmt.Fprintf(w,"No Found Funky(_^_)_")
+				fmt.Println(err)
+				return
+			} else {
+				fmt.Printf("\x1b[38;5;%dm请求路径 (:\t%s\n", clr[rand.Intn(len(clr))],r.URL.Path)//打印请求
+			}
 		if fileInfo.IsDir() {
-			w.Header().Set("Content-Type", "text/html")
-			w.Write([]byte(`<meta charset="UTF-8">
+htmlcode := `<meta charset="UTF-8">
 <script>
 coloR = ["#82b1ff","#ff89cf","#FB7299","#6dc781"];
 var rdmc = ("rgb(" + ~~(256 * Math.random()) + "," + ~~(256 * Math.random()) + "," + ~~(256 * Math.random()) + ")");coloR.push(rdmc);
@@ -296,7 +323,7 @@ body {
 }
 a {
 	color: white;
-	font-size: 180%;
+	font-size: 120%;
 	text-decoration: none;
 }
 a:link {
@@ -319,9 +346,7 @@ h1 {
 	color : var(--cl);
 }
 </style>
-`))
-			w.Write([]byte("<style='display:none'\033[35m>\n\n\n" + r.URL.Path + "\n<ul><a href=\"../\">../</a></ul>\n"))
-
+`
 			var dirLink []string
 			var fileLink []string
 			var dirName []string
@@ -349,27 +374,60 @@ h1 {
 								fileName = append(fileName,Link.Name())
 							/*case "L" :
 								这里大概不会有软链接了的……*/
-							}
+						}
 				}
 			}
+			sort.Slice(fileName, func(i, j int) bool {
+				suffixI := getFileSuffix(fileName[i])
+				suffixJ := getFileSuffix(fileName[j])
+				_Rs := false
+				if r.URL.Query().Get("s") =="type" {
+					_Rs = strings.Compare(suffixI, suffixJ) < 0
+				} else if r.URL.Query().Get("rs") =="type" {
+					_Rs = strings.Compare(suffixI, suffixJ) > 0
+				}
+					return _Rs
+			})
+			if r.Header.Get("User-Agent")[:1] == "c" {//判断是否是curl请求
+				for i, _ := range dirLink {//打印目录列表
+					w.Write([]byte(fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]) + dirName[i] + "/\n"))
+				}
+				for i, _ := range fileLink {//打印文件列表
+					w.Write([]byte(fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]) + fileName[i] + "\n"))
+				}
 
-			for i, dir := range dirLink {//打印目录列表
-				w.Write([]byte("<ul><a href='" + dir + "/'>" + dirName[(i)] + "/</a><br /></ul>\n"))
-			}
-			for i, file := range fileLink {//打印文件列表
-				w.Write([]byte("<ul><a href='" + file + "'>" + fileName[(i)] + "</a><br /></ul>\n"))
+			} else {
+				w.Header().Set("Content-Type", "text/html")
+				w.Write([]byte(htmlcode))
+				w.Write([]byte(r.URL.Path + "<pre><ul><a href=\"../\">../</a></ul>"))
+				for i, dir := range dirLink {
+					w.Write([]byte("<ul><a href='" + dir + "/'>" + dirName[i] + "/</a><br /></ul>"))
+				}
+				for i, file := range fileLink {
+					w.Write([]byte("<ul><a href='" + file + "'>" + fileName[i] + "</a><br /></ul>"))
+				}
+				w.Write([]byte("</pre>"))
 			}
 
 		} else {
 			http.ServeFile(w, r, path)
 		}
+		/*
 		//你要用来做html网页服务器可以删掉上面的
 		//fileServer := http.FileServer(http.Dir(homePath))
 		//fileServer.ServeHTTP(w, r)
-
+		*/
 	}
-
 }
+
+func getFileSuffix(fileName string) string {// getFileSuffix 函数用于获取文件后缀
+	lastDotIndex := strings.LastIndex(fileName, ".")// 使用strings.LastIndex获取最后一个点的位置
+	if lastDotIndex == -1 {
+		return ""
+	}
+	return strings.ToLower(fileName[lastDotIndex+1:])
+}
+
 func serveFavicon(w http.ResponseWriter, r *http.Request) {//网页图标
 	faviconPath := "icon/favicon.png"
 	file, _ := content.Open(faviconPath)
