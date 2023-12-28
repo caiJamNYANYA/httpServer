@@ -5,7 +5,7 @@ import (
 	"fmt"
 	// "path"
 	"sort"
-	"flag"
+//	"flag"
 	"embed"	
 	"bufio"
 	// "net"
@@ -18,7 +18,6 @@ import (
 	"os/signal"
 	"net/http"
 	"github.com/ulikunitz/xz"
-
 )
 
 //go:embed icon/*
@@ -93,16 +92,64 @@ func tarGzFiles(tarType, outputFile string, files []string) error {
 	return nil
 }
 
-func main() {
-	var port int
-	flag.IntVar(&port, "p", 5050, "listen port")//端口参数获取
-	flag.Parse()//更新参数变量
-
-	for _, text := range fmt.Sprintln("HttpServer") {
+func textColoful(str string) {//我真的不想看见白色得文本出现喵～
+	for _, text := range str {
 		fmt.Printf("\x1b[38;5;%dm%c",clr[rand.Intn(len(clr))],text)
-	//	fmt.Printf("\u2606Http Server\u2606\n")
 	}
-	randomNumbr = fmt.Sprintf("____%s",randomString(12))//共享文件夹名称
+}
+func cPrint(str string) {
+	fmt.Printf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))])
+	fmt.Println(str)
+}
+
+func main() {
+	port := 5050
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) == 0 {//通过管道获取参数
+		scanner := bufio.NewScanner(os.Stdin)
+		var inputLines []string
+		for scanner.Scan() {
+			inputLines = append(inputLines, scanner.Text())
+		
+		}
+		os.Args = append(os.Args,inputLines...)
+	}
+//	flag.IntVar(&port, "p", 5050, "listen port")//端口参数获取
+//	flag.Parse()//更新参数变量
+	for i, param := range os.Args {
+		args := []string{}
+		argsCopy := os.Args
+		switch param {
+		case "-p", "--port" :
+			if i + 2 > len(os.Args) {
+				cPrint("Usage:")
+				cPrint("-p int\vlisten port (default 5050)")
+				os.Exit(0)
+			} else {
+				portStr := os.Args[i+1]
+				//	var port int
+				_, err := fmt.Sscanf(portStr, "%d", &port)//转成数字是为了比较的……
+				if err != nil {
+					cPrint("喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)")
+					os.Exit(0)
+				}
+				os.Args = append(args, os.Args[0:i]...)
+				os.Args = append(os.Args,argsCopy[i+2:len(argsCopy)]...)
+				break
+			}
+		case "-h", "--help" :
+			cPrint("Usage: shrd [PATH]... [-p <PORT>]")
+			cPrint("\t-p, --port 似乎需要一个整数的样子(笑)")
+			cPrint("\t-h, --help 可莉不知道哦(●´ϖ`●)")
+			textColoful("少女乞讨中");fmt.Println("...")
+			os.Exit(0)
+
+		}
+	}
+
+
+	textColoful("Http Server\n")
+	randomNumbr = ("____" + randomString(12))//共享文件夹名称
 	homePath = fmt.Sprintf("%s/%s",os.Getenv("HOME"),randomNumbr)//共享文件夹绝对路径
 	os.Mkdir(homePath, os.ModePerm)//创建共享文件夹
 	tarPath = fmt.Sprintf("%s/%s",homePath,randomNumbr)//共享
@@ -112,7 +159,7 @@ func main() {
 
 	pathArgs := make([]string, 2)//定义存储路径的数组；长度为2用于没有输入参数时定义默认值
 
-	stat, _ := os.Stdin.Stat()
+/*	stat, _ := os.Stdin.Stat()
 	var Args []string
 	if (stat.Mode() & os.ModeCharDevice) == 0 {//通过管道获取参数
 		scanner := bufio.NewScanner(os.Stdin)
@@ -124,19 +171,19 @@ func main() {
 	} else {
 		Args = os.Args
 	}
+*/
 
-
-	if (len(Args) == 1/*数组第0个元素默认是启动程序*/) || (Args[1] == "-p" && len(Args) == 3/*加了port参数-p之后长度变成3*/) {
-		Args[0] = ""
+	if (len(os.Args) == 1/*数组第0个元素默认是启动程序*/) || (port != 5050 && len(os.Args) == 3/*加了port参数-p之后长度变成3*/) {
+		os.Args[0] = ""
 		pathArgs[1] = "."//定义默认路径为当前目录
-	} else if Args[1] == "-p"/*使用了端口值并且使用了路径时*/ {
-		Args[0] = ""
-		pathArgs = Args
+	} else if os.Args[1] == "-p"/*使用了端口值并且使用了路径时*/ {
+		os.Args[0] = ""
+		pathArgs = os.Args
 		pathArgs[1] = randomString(12)//将-p参数替换为随机字符一次，以防将当前目录下与-p同名的文件夹给分享出去……
 		pathArgs[2] = randomString(12)//将端口这一参数替换为随机的字符串，以防将目录下与端口名称一样的目录给分享出去……
 	} else {
-		Args[0] = ""
-		pathArgs = Args//只使用了路径参数时
+		os.Args[0] = ""
+		pathArgs = os.Args//只使用了路径参数时
 	}
 
 	for _, value := range pathArgs {//读取数组获取绝对路径
@@ -149,9 +196,8 @@ func main() {
 		}
 	}
 
-//	fmt.Println("\033[31m",os.Args,"\x1b[38;5;85m\t\t",pathOrign,"\n")
 	if (len(pathOrign)) == 1 {//如果没有一个正确路径时退出程序，如果想使用空目录并手动添加文件可以删掉这段……
-		fmt.Println("\n\x1b[38;5;211mNo file input (_^_)_")
+		fmt.Println("\n\x1b[38;5;211m这就是你输入的路径?(_^_)_")
 		rm(homePath)//清除分享目录
 		os.Exit(1)
 	}
@@ -189,8 +235,9 @@ func main() {
 		toPath := fmt.Sprintf("%s/%s",homePath,pathNameArgsFix[i-1])//链接目录路径
 		err := os.Symlink(fromPath, toPath)//创建链接
 		if err != nil {
-			rm(homePath)
-			panic(err)
+			fmt.Println(err)
+			//rm(homePath)
+		//	panic(err)
 		}
 	}
 
@@ -200,9 +247,9 @@ func main() {
 		<-sigChan
 		if rm(homePath) != nil {//移除共享文件夹
 
-		fmt.Printf("\n\x1b[38;5;211mRemove RRROR (@_@)")
+		fmt.Printf("\n\x1b[38;5;211m似乎并没有删除什么 (@_@)")
 		} else {
-			fmt.Println("\n\x1b[38;5;85mRemove done （￣▽￣）",randomNumbr)
+			fmt.Println("\n\x1b[38;5;85m似乎删掉了什么（￣▽￣）",randomNumbr)
 			}
 		os.Exit(0)
 	}()
@@ -215,9 +262,23 @@ func main() {
 	if err != nil {
 		if rm(homePath) != nil {//移除共享文件夹
 		} else {
-			fmt.Printf("\n\x1b[38;5;211mPort Error ≡≡ﾍ( ´Д`)ﾉ")
-			fmt.Println("\nRemove done (゜o゜)",randomNumbr)
-			os.Exit(1)
+			if port < 1024 {
+				errstr := fmt.Sprintf("%v",err)
+				if (errstr[len(errstr)-2:]) == "ed" {
+					fmt.Println("\x1b[38;5;211m你什么身份呀(╯°口°)╯(┴—┴这个端口也是你能用的！")
+					fmt.Println("似乎删掉了什么 (゜o゜)",randomNumbr)
+					os.Exit(1)
+				} else {
+					fmt.Println("\x1b[38;5;211m该端口无了 ≡≡ﾍ( ´Д`)ﾉ")
+					fmt.Println("似乎删掉了什么 (゜o゜)",randomNumbr)
+					os.Exit(1)
+				}
+			} else {
+
+				fmt.Println("\x1b[38;5;211m该端口无了 ≡≡ﾍ( ´Д`)ﾉ")
+				fmt.Println("似乎删掉了什么 (゜o゜)",randomNumbr)
+				os.Exit(1)
+			}
 		}
 	}
 	select {}
@@ -299,6 +360,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound) // 使用302状态码进行重定向
 
 	} else {//主要成分！？
+///*
 		fileInfo, err := os.Lstat(path)
 			if err != nil {
 				fmt.Printf("\x1b[38;5;%dm请求路径 ):\t%s\n", clr[rand.Intn(len(clr))],r.URL.Path)//打印请求
@@ -372,8 +434,8 @@ h1 {
 							case "-" :
 								fileLink = append(fileLink,r.URL.Path + Link.Name())
 								fileName = append(fileName,Link.Name())
-							/*case "L" :
-								这里大概不会有软链接了的……*/
+//							case "L" :
+//								这里大概不会有软链接了的……
 						}
 				}
 			}
@@ -412,6 +474,7 @@ h1 {
 		} else {
 			http.ServeFile(w, r, path)
 		}
+//*/
 		/*
 		//你要用来做html网页服务器可以删掉上面的
 		//fileServer := http.FileServer(http.Dir(homePath))
