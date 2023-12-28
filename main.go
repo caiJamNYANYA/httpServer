@@ -159,19 +159,6 @@ func main() {
 
 	pathArgs := make([]string, 2)//定义存储路径的数组；长度为2用于没有输入参数时定义默认值
 
-/*	stat, _ := os.Stdin.Stat()
-	var Args []string
-	if (stat.Mode() & os.ModeCharDevice) == 0 {//通过管道获取参数
-		scanner := bufio.NewScanner(os.Stdin)
-		var inputLines []string
-		for scanner.Scan() {
-			inputLines = append(inputLines, scanner.Text())
-			Args = append(os.Args,inputLines...)
-		}
-	} else {
-		Args = os.Args
-	}
-*/
 
 	if (len(os.Args) == 1/*数组第0个元素默认是启动程序*/) || (port != 5050 && len(os.Args) == 3/*加了port参数-p之后长度变成3*/) {
 		os.Args[0] = ""
@@ -228,7 +215,7 @@ func main() {
 		 */
 
 		fmt.Printf("\n\x1b[38;5;85m\u2605\x1b[38;5;159mfrom\t<--\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],pathOrign[i])
-		downloadAddr := fmt.Sprintf("192.168.1.20:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[i-1])//根据自己的网络修改吧～
+		downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[i-1])//根据自己的网络修改吧～
 		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],downloadAddr)
 
 		fromPath := pathOrign[i]//链接原路径获取
@@ -236,7 +223,8 @@ func main() {
 		err := os.Symlink(fromPath, toPath)//创建链接
 		if err != nil {
 			fmt.Println(err)
-			//rm(homePath)
+			rm(homePath)
+			os.Exit(1)
 		//	panic(err)
 		}
 	}
