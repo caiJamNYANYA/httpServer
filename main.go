@@ -283,7 +283,7 @@ func main() {
 			}
 			for _, path := range pathNameArgs {
 				var matched bool
-				matched, _ = filepath.Match(line, path)
+				matched, _ = filepath.Match("*" + line, path)
 				if !matched {
 					matched, _ = filepath.Match(line, strings.ToLower(path))
 				}
