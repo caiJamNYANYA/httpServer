@@ -8,7 +8,7 @@ import (
 //	"flag"
 	"embed"	
 	"bufio"
-	// "net"
+	 "net"
 	"sync"
 	"strings"
 	"archive/tar"
@@ -26,6 +26,7 @@ import (
 var content embed.FS
 
 var homePath string//分享目录
+var netAddr string//网络地址
 var tarPath string//tar储存目录
 var randomNumbr string//随机数
 var pathNameArgs []string//定义路径最后一级名称的数组
@@ -106,6 +107,19 @@ func cPrint(str string) {
 
 func main() {
 	port := 5050
+
+	var ipArgs []string
+	addrs, err := net.InterfaceAddrs()//获取本地ip地
+	for _, addr := range addrs {
+		ipArgs = append(ipArgs, strings.Split(addr.String(), "/")[0])//添加到数
+	}
+	if err != nil {
+		ipArgs = append(ipArgs,"")
+		ipArgs = append(ipArgs,"127.0.0.1")
+		cPrint(fmt.Sprint(err) + " 显示改为" + ipArgs[1] + " ;)")
+	}
+//	fmt.Print(ipArgs)
+
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {//通过管道获取参数
 		scanner := bufio.NewScanner(os.Stdin)
@@ -153,6 +167,7 @@ func main() {
 	textColoful("Ciallo～(∠・ω< )⌒☆\n\n")
 	randomNumbr = ("____" + randomString(12))//共享文件夹名称
 	homePath = fmt.Sprintf("%s/%s",os.Getenv("HOME"),randomNumbr)//共享文件夹绝对路径
+	netAddr = fmt.Sprintf("%s:%d/",ipArgs[1],port)
 	os.Mkdir(homePath, os.ModePerm)//创建共享文件夹
 	tarPath = fmt.Sprintf("%s/%s",homePath,randomNumbr)//共享
 	os.Mkdir(tarPath, os.ModePerm)
@@ -201,19 +216,9 @@ func main() {
 	pathNameArgsFix = argsFix(pathNameArgs)//将重名的链接名称添加前缀…………为什么不能放在for里面喵
 
 	for i := 1 ; i <= len(pathOrign) - 1; i++ {
-		 /*var ipArgs []string
-		 addrs, _ := net.InterfaceAddrs()//获取本地ip地址
-		 for _, addr := range addrs {
-			 if strings.HasPrefix(addr.String(), "192.168.1"/*匹配前缀，我家的ip网段是一个192.168.1.x请自行修改*//*) {
-				 ipArgs = append(ipArgs, strings.Split(addr.String(),"/")[0])//添加到数组
-			 }
-		 }
-		 //需要导入net包和strings包
-		 */
 
 		fmt.Printf("\n\x1b[38;5;85m\u2605\x1b[38;5;159mfrom\t<--\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],pathOrign[i])
-		downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,pathNameArgs[i-1])//根据自己的网络修改吧～
-		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],downloadAddr)
+		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],netAddr + pathNameArgs[i-1])
 
 		fromPath := pathOrign[i]//链接原路径获取
 		toPath := fmt.Sprintf("%s/%s",homePath,pathNameArgsFix[i-1])//链接目录路径
@@ -291,8 +296,7 @@ func main() {
 					continue
 				}
 				if matched {
-					downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,path)
-					fmt.Printf("\x1b[38;5;%dm%s\n",clr[rand.Intn(len(clr))],downloadAddr)
+					fmt.Printf("\x1b[38;5;%dm%s\n",clr[rand.Intn(len(clr))],netAddr + path)
 
 				}
 			}
