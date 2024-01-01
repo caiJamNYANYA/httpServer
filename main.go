@@ -285,16 +285,9 @@ func main() {
 				if strings.Contains(path, line) {
 					downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,path)
 					fmt.Printf("\x1b[38;5;%dm%s\n",clr[rand.Intn(len(clr))],downloadAddr)
-//					break
 
 				}
 			}
-			if line == "/ls" {
-				fmt.Println(pathNameArgs)
-			}
-//			if err != nil {
-//				break
-//			}
 
 			l.SaveHistory(line)
 		}
