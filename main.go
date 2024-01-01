@@ -282,7 +282,12 @@ func main() {
 				continue
 			}
 			for _, path := range pathNameArgs {
-				if strings.Contains(path, line) {
+				var matched bool
+				matched, _ = filepath.Match(line, path)
+				if !matched {
+					matched, _ = filepath.Match(line, strings.ToLower(path))
+				}
+				if matched || strings.Contains(path, line) {
 					downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,path)
 					fmt.Printf("\x1b[38;5;%dm%s\n",clr[rand.Intn(len(clr))],downloadAddr)
 
