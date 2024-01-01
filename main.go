@@ -8,6 +8,7 @@ import (
 //	"flag"
 	"embed"	
 	"bufio"
+	"regexp"
 	// "net"
 	"sync"
 	"strings"
@@ -287,7 +288,16 @@ func main() {
 				if !matched {
 					matched, _ = filepath.Match(line, strings.ToLower(path))
 				}
-				if matched || strings.Contains(path, line) {
+
+				regexpObject, _ := regexp.Compile(".*" + strings.Join(strings.Split(line, ""), ".*") + ".*")
+				// 使用正则表达式进行匹配
+				var matched2 bool
+				matched2 = regexpObject.MatchString(path)
+				if !matched2 {
+					matched2 = regexpObject.MatchString(strings.ToLower(path))
+				}
+
+				if matched || matched2 {
 					downloadAddr := fmt.Sprintf("localhost:%d/%s"/*,ipArgs[0]*/,port,path)
 					fmt.Printf("\x1b[38;5;%dm%s\n",clr[rand.Intn(len(clr))],downloadAddr)
 
