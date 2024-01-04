@@ -135,23 +135,33 @@ func main() {
 	for i, param := range os.Args {
 		args := []string{}
 		argsCopy := os.Args
+		if len(param) >2 && param[0:2] == "-p" {
+			if i + 1 > len(os.Args) {
+				cPrint("-p<int>, \v似乎需要输入一个数字的样子(笑)")
+				os.Exit(0)
+			}
+			os.Args = append(args, os.Args[0:i]...);os.Args = append(os.Args,argsCopy[i+1:len(argsCopy)]...)
+			_, err := fmt.Sscanf(param[2:len(param)], "%d", &port)//转成数字是为了比较的……
+			if err != nil {
+				cPrint("喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)")
+				//os.Exit(0)
+			}
+		}
 		switch param {
 		case "-p", "--port" :
 			if i + 2 > len(os.Args) {
 				cPrint("Usage:")
 				cPrint("-p, --port\v似乎需要输入一个数字的样子(笑)")
 				os.Exit(0)
-			} else {
-				portStr := os.Args[i+1]
-				_, err := fmt.Sscanf(portStr, "%d", &port)//转成数字是为了比较的……
-				if err != nil {
-					cPrint("喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)")
-					os.Exit(0)
-				}
-				os.Args = append(args, os.Args[0:i]...)
-				os.Args = append(os.Args,argsCopy[i+2:len(argsCopy)]...)
-				break
 			}
+			portStr := os.Args[i+1]
+			os.Args = append(args, os.Args[0:i]...);os.Args = append(os.Args,argsCopy[i+2:len(argsCopy)]...)
+			_, err := fmt.Sscanf(portStr, "%d", &port)//转成数字是为了比较的……
+			if err != nil {
+				cPrint("喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)")
+				//os.Exit(0)
+			}
+			break
 		case "-h", "--help" :
 			cPrint("Usage: shrd [PATH]... [-p <PORT>]")
 			cPrint("\t-p, --port 似乎需要一个数字的样子(笑)")
