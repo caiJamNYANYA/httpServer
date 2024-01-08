@@ -29,9 +29,14 @@ var homePath string//分享目录
 var netAddr string//网络地址
 var tarPath string//tar储存目录
 var randomNumbr string//随机数
+
 var pathNameArgs []string//定义路径最后一级名称的数组
 var pathNameArgsFix []string//定义路径最后一级名称重复加前缀的数组
 var pathOrign []string//定义原始输入路径的数组
+
+var disableList bool
+var disableUpload bool
+var disableTar bool
 
 var clr = [...]int{219,171,213,202,220,208,217,183,211,195,223,225,229,85,86,123,153,189,117,105,177,175,204,218}//这啥呀(_^_)_这是
 
@@ -106,7 +111,77 @@ func cPrint(str string) {
 }
 
 func main() {
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) == 0 {//通过管道获取参数
+		scanner := bufio.NewScanner(os.Stdin)
+		var inputLines []string
+		for scanner.Scan() {
+			inputLines = append(inputLines, scanner.Text())
+
+		}
+		os.Args = append(os.Args,inputLines...)
+	}
+//	flag.IntVar(&port, "p", 5050, "listen port")//端口参数获取
+//	flag.Parse()//更新参数变量
+
 	port := 5050
+	replace := "" + randomString(12)
+	for i, param := range os.Args {
+		if len(param) >2 && param[0:2] == "-p" {
+			if i + 1 > len(os.Args) {
+				cPrint("-p<int>, \v似乎需要输入一个数字的样子(笑)")
+				os.Exit(0)
+			}
+			os.Args[i] = replace
+			_, err := fmt.Sscanf(param[2:len(param)], "%d", &port)//转成数字是为了比较的……
+			if err != nil {
+				fmt.Print("\x1b[38;5;211m喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)\n")
+			}
+		}
+		switch param {
+		case "-p", "--port" :
+			if i + 2 > len(os.Args) {
+				cPrint("Usage:")
+				cPrint("-p, --port\v似乎需要输入一个数字的样子(笑)")
+				os.Exit(0)
+			}
+			portStr := os.Args[i+1]
+			os.Args[i] = replace
+			os.Args[i+1] = replace
+			_, err := fmt.Sscanf(portStr, "%d", &port)//转成数字是为了比较的……
+			if err != nil {
+				fmt.Print("\x1b[38;5;211m喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)\n")
+			}
+		case "--disable-list" :
+			disableList = true
+			os.Args[i] = replace
+		case "--disable-upload" :
+			disableUpload = true
+			os.Args[i] = replace
+		case "--disable-tar" :
+			disableTar = true
+			os.Args[i] = replace
+		case "-h", "--help" :
+			cPrint("Usage: shrd [PATH]... [-p <PORT>] [OPTION]")
+			cPrint("\t-p, --port\t\t似乎需要一个数字的样子(笑)")
+			cPrint("\t    --disable-list\t禁用文件列表……需要使用目录下的index.html时可用 (_^_)_")
+			cPrint("\t    --disable-upload\t禁止上传 ( ･ิϖ･ิ)")
+			cPrint("\t    --disable-tar\t禁止打包下载(・・;)")
+			cPrint("\t-h, --help\t\t可莉不知道哦(●´ϖ`●)")
+			textColoful("少女讨饭中");fmt.Println("...")
+			os.Exit(0)
+
+		}
+	}
+
+	var args []string
+	for _, paths := range os.Args {
+		if paths != replace {
+			args = append(args, paths)
+		}
+	}
+	os.Args = args
+
 
 	var ipArgs []string
 	addrs, err := net.InterfaceAddrs()//获取本地ip地
@@ -118,62 +193,8 @@ func main() {
 		ipArgs = append(ipArgs,"127.0.0.1")
 		cPrint(fmt.Sprint(err) + " 显示改为" + ipArgs[1] + " ;)")
 	}
-//	fmt.Print(ipArgs)
-
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) == 0 {//通过管道获取参数
-		scanner := bufio.NewScanner(os.Stdin)
-		var inputLines []string
-		for scanner.Scan() {
-			inputLines = append(inputLines, scanner.Text())
-		
-		}
-		os.Args = append(os.Args,inputLines...)
-	}
-//	flag.IntVar(&port, "p", 5050, "listen port")//端口参数获取
-//	flag.Parse()//更新参数变量
-	for i, param := range os.Args {
-		args := []string{}
-		argsCopy := os.Args
-		if len(param) >2 && param[0:2] == "-p" {
-			if i + 1 > len(os.Args) {
-				cPrint("-p<int>, \v似乎需要输入一个数字的样子(笑)")
-				os.Exit(0)
-			}
-			os.Args = append(args, os.Args[0:i]...);os.Args = append(os.Args,argsCopy[i+1:len(argsCopy)]...)
-			_, err := fmt.Sscanf(param[2:len(param)], "%d", &port)//转成数字是为了比较的……
-			if err != nil {
-				cPrint("喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)")
-				//os.Exit(0)
-			}
-		}
-		switch param {
-		case "-p", "--port" :
-			if i + 2 > len(os.Args) {
-				cPrint("Usage:")
-				cPrint("-p, --port\v似乎需要输入一个数字的样子(笑)")
-				os.Exit(0)
-			}
-			portStr := os.Args[i+1]
-			os.Args = append(args, os.Args[0:i]...);os.Args = append(os.Args,argsCopy[i+2:len(argsCopy)]...)
-			_, err := fmt.Sscanf(portStr, "%d", &port)//转成数字是为了比较的……
-			if err != nil {
-				cPrint("喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)")
-				//os.Exit(0)
-			}
-			break
-		case "-h", "--help" :
-			cPrint("Usage: shrd [PATH]... [-p <PORT>]")
-			cPrint("\t-p, --port 似乎需要一个数字的样子(笑)")
-			cPrint("\t-h, --help 可莉不知道哦(●´ϖ`●)")
-			textColoful("少女讨饭中");fmt.Println("...")
-			os.Exit(0)
-
-		}
-	}
 
 
-	
 	textColoful("Ciallo～(∠・ω< )⌒☆\n\n")
 	randomNumbr = ("____" + randomString(12))//共享文件夹名称
 	homePath = fmt.Sprintf("%s/%s",os.Getenv("HOME"),randomNumbr)//共享文件夹绝对路径
@@ -181,7 +202,7 @@ func main() {
 	os.Mkdir(homePath, os.ModePerm)//创建共享文件夹
 	tarPath = fmt.Sprintf("%s/%s",homePath,randomNumbr)//共享
 	os.Mkdir(tarPath, os.ModePerm)
-		
+
 	// 打印接收到的数据
 
 	pathArgs := make([]string, 2)//定义存储路径的数组；长度为2用于没有输入参数时定义默认值
@@ -306,7 +327,6 @@ func main() {
 				}
 				if matched {
 					fmt.Printf("\x1b[38;5;%dm%s\n",clr[rand.Intn(len(clr))],netAddr + path)
-
 				}
 			}
 
@@ -321,6 +341,13 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	path := (homePath + r.URL.Path) // 获取添加到tar的目录的信息
 	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("m") =="xz" || r.URL.Query().Get("m") == "t" || r.URL.Query().Get("m") == "tgz" {//重定向tar.gz压缩包
+		if disableTar {
+			if r.Header.Get("User-Agent")[:1] == "c" {
+				fmt.Fprint(w,"\x1b[38;5;211m")
+			}
+			fmt.Fprint(w,"下载失败(ーー゛)\t已禁用打包下载")
+			return
+		}
 		fmt.Printf("\x1b[38;5;%dm请求路径 (:\t%s\n", clr[rand.Intn(len(clr))],r.URL.Path)//打印请求
 		var linkPath string//获取软链接路径到原始路径使用的变量
 		var folderPath string
@@ -394,6 +421,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound) // 使用302状态码进行重定向
 
 	} else if r.URL.Query().Get("up") != "" {
+		if disableUpload {
+			if r.Header.Get("User-Agent")[:1] == "c" {
+				fmt.Fprint(w,"\x1b[38;5;211m")
+			}
+			fmt.Fprint(w, "上传失败 ):\t已禁用上传(￣ー￣)ﾆﾔﾘ\n")
+			return
+		}
 		file, handler, err := r.FormFile("file")
 		if err != nil {
 			fmt.Print("\x1b[38;5;211m上传失败 ):\t", err,"\n")
@@ -422,6 +456,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Print("\x1b[38;5;85m上传成功 (:\t", filepath.Join(upDir, handler.Filename),"\n")
 		fmt.Fprint(w,"上传成功 (:\t", filepath.Join(upDir, handler.Filename),"\n")
 	} else {//主要成分！？
+		if disableList {
+			fileServer := http.FileServer(http.Dir(homePath))
+			fileServer.ServeHTTP(w, r)
+			return
+		}
 ///*
 		fileInfo, err := os.Lstat(path)
 			if err != nil {
@@ -526,11 +565,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, path)
 		}
 //*/
-		/*
+		// /*
 		//你要用来做html网页服务器可以删掉上面的
-		//fileServer := http.FileServer(http.Dir(homePath))
-		//fileServer.ServeHTTP(w, r)
-		*/
+
+		// */
 	}
 }
 
@@ -543,8 +581,7 @@ func getFileSuffix(fileName string) string {// getFileSuffix 函数用于获取�
 }
 
 func serveFavicon(w http.ResponseWriter, r *http.Request) {//网页图标
-	faviconPath := "static/icon/favicon.png"
-	file, _ := content.Open(faviconPath)
+	file, _ := content.Open("static/icon/favicon.png")
 	defer file.Close()
 	io.Copy(w, file)
 }
