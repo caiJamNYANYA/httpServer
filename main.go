@@ -22,7 +22,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-//go:embed icon/*
+//go:embed static/*
 var content embed.FS
 
 var homePath string//分享目录
@@ -273,10 +273,9 @@ func main() {
 
 	go func() {
 		l, err := readline.NewEx(&readline.Config{
-			Prompt:"> ",
-			HistoryFile:"/tmp/readline.tmp",
-			InterruptPrompt:"^C",
-			EOFPrompt:"exit",
+			Prompt:"",
+//			InterruptPrompt:"^C",
+//			EOFPrompt:"exit",
 		})
 		if err != nil {
 			fmt.Println("Error: ", err)
@@ -285,7 +284,7 @@ func main() {
 
 		defer l.Close()
 		for {
-			fmt.Printf("\x1b[38;5;%dm%s",clr[rand.Intn(len(clr))])
+			fmt.Printf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))])
 			line, err := l.Readline()
 		//	fmt.Print(err)
 			if err == readline.ErrInterrupt || fmt.Sprint(err) == "EOF" {
@@ -394,6 +393,34 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 		w.WriteHeader(http.StatusFound) // 使用302状态码进行重定向
 
+	} else if r.URL.Query().Get("up") != "" {
+		file, handler, err := r.FormFile("file")
+		if err != nil {
+			fmt.Print("\x1b[38;5;211m上传失败 ):\t", err,"\n")
+			if r.Header.Get("User-Agent")[:1] == "c" {
+				fmt.Fprint(w,"\x1b[38;5;211m")
+			}
+			fmt.Fprint(w, "上传失败 ):\t", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		upDir, _ := filepath.Abs(r.URL.Query().Get("up"))
+		destFile, _ := os.Create(filepath.Join(upDir, handler.Filename))
+		defer destFile.Close()
+		_, err = io.Copy(destFile, file)
+		if err != nil {
+			fmt.Print("\x1b[38;5;211m上传失败 ):\t", err, "\t",filepath.Join(upDir, handler.Filename),"\n")
+			if r.Header.Get("User-Agent")[:1] == "c" {
+				fmt.Fprint(w,"\x1b[38;5;211m")
+			}
+			fmt.Fprint(w,"上传失败 ):\t", http.StatusInternalServerError, "\t",filepath.Join(upDir, handler.Filename),"\n")
+			return
+		}
+		if r.Header.Get("User-Agent")[:1] == "c" {
+			fmt.Fprint(w,"\x1b[38;5;85m")
+		}
+		fmt.Print("\x1b[38;5;85m上传成功 (:\t", filepath.Join(upDir, handler.Filename),"\n")
+		fmt.Fprint(w,"上传成功 (:\t", filepath.Join(upDir, handler.Filename),"\n")
 	} else {//主要成分！？
 ///*
 		fileInfo, err := os.Lstat(path)
@@ -410,44 +437,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			}
 
 		if fileInfo.IsDir() {//当访问的网络路径是目录类型
-htmlcode := `<meta charset="UTF-8">
-<script>
-coloR = ["#82b1ff","#ff89cf","#FB7299","#6dc781"];
-var rdmc = ("rgb(" + ~~(256 * Math.random()) + "," + ~~(256 * Math.random()) + "," + ~~(256 * Math.random()) + ")");coloR.push(rdmc);
-document.documentElement.style.setProperty('--cl',(coloR[~~(Math.random()*coloR.length)]));
-</script>
-<style type="text/css">
-body {
-	background-color: #000000ff;
-	color:white;
-	-webkit-text-stroke: 1.2px var(--cl);
-}
-a {
-	color: white;
-	font-size: 120%;
-	text-decoration: none;
-}
-a:link {
-	color: white;
-	-webkit-text-stroke: 1.2px var(--cl);
-}
-a:hover {
-	color: white;
-	-webkit-text-stroke: 1.2px var(--cl);
-}
-a:visited {
-	color: white;
-	-webkit-text-stroke: 1.2px var(--cl);
-}
-a:active {
-	color: white;
-	-webkit-text-stroke: 1.2px var(--cl);
-}
-h1 {
-	color : var(--cl);
-}
-</style>
-`
+			htmlContent, _ := content.ReadFile("static/index.html")
+			htmlcode := string(htmlContent)
 			var dirLink []string
 			var fileLink []string
 			var dirName []string
@@ -492,23 +483,43 @@ h1 {
 
 			if r.Header.Get("User-Agent")[:1] == "c" {//判断是否是curl请求
 				for i, _ := range dirLink {//打印目录列表
-					w.Write([]byte(fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]) + dirName[i] + "/\n"))
+					fmt.Fprint(w,fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]), dirName[i], "/\n")
 				}
 				for i, _ := range fileLink {//打印文件列表
-					w.Write([]byte(fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]) + fileName[i] + "\n"))
+					fmt.Fprint(w,fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]), fileName[i], "/\n")
 				}
 
 			} else {
 				w.Header().Set("Content-Type", "text/html")
-				w.Write([]byte(htmlcode))
-				w.Write([]byte(r.URL.Path + "<pre><ul><a href=\"../\">../</a></ul>"))
+				fmt.Fprint(w,htmlcode)
+				fmt.Fprint(w,`<div id="floatingButton" onclick="toggleOverlay()">Upload</div>
+				<div id="overlay">
+				<div id="overlay-content">
+				<form id="myForm" action="/?up=` + path + `" method="post" enctype="multipart/form-data">
+				<label for="myInput">上传路径</label>
+				<!-- 输入框 -->
+				<input type="text" id="myInput" name="inputValue" />
+				<!-- 提交按钮 -->
+				<br>
+				<input type="file" name="file" style="font-size: 110%;" />
+				<!--input type="file" name="file"-->
+				<br>
+				<input type="submit" value="上传（￣▽￣）" />
+				</form>
+				<div style="text-align: right;">
+				<button onclick="toggleOverlay()" style="background-color:#333;border: none;">x</button>
+				</div>
+				</div>
+				</div>
+				`)
+				fmt.Fprint(w,"<h1>", r.URL.Path, "</h1>", "<pre><ul><a href=\"../\">../</a></ul>")
 				for i, dir := range dirLink {
-					w.Write([]byte("<ul><a href='" + dir + "/'>" + dirName[i] + "/</a><br /></ul>"))
+					fmt.Fprint(w,"<ul><a href='", dir, "/'>", dirName[i], "/</a><br /></ul>")
 				}
 				for i, file := range fileLink {
-					w.Write([]byte("<ul><a href='" + file + "'>" + fileName[i] + "</a><br /></ul>"))
+					fmt.Fprint(w,"<ul><a href='", file, "'>", fileName[i], "</a><br /></ul>")
 				}
-				w.Write([]byte("</pre>"))
+				fmt.Fprint(w,"</pre>")
 			}
 
 		} else {//当访问的网络路径是文件类型
@@ -532,7 +543,7 @@ func getFileSuffix(fileName string) string {// getFileSuffix 函数用于获取�
 }
 
 func serveFavicon(w http.ResponseWriter, r *http.Request) {//网页图标
-	faviconPath := "icon/favicon.png"
+	faviconPath := "static/icon/favicon.png"
 	file, _ := content.Open(faviconPath)
 	defer file.Close()
 	io.Copy(w, file)
