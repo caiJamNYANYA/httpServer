@@ -8,20 +8,19 @@
 	window.onload = function() {// 获取表单和输入框的引用
 			var form = document.getElementById('myForm');
 			var input = document.getElementById('myInput');
-					      
-					    //当输入框内容改变时更新表单的 action 属性
-			input.addEventListener('input', function() {// 默认的 URL 前缀
-					var defaultUrl = '/?up=';
-					// 获取输入框的值						
-					var inputValue = input.value;
-					// 设置表单的 action 属性
-					form.action = defaultUrl + inputValue;
-								 });
+			input.addEventListener('input', function() {
+				var defaultUrl = '/?up=';
+				var inputValue = input.value;
+				form.action = defaultUrl + inputValue;
+			});
 				    };
 </script>
 <style type="text/css">
 body {
-	width: 100vh;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
 	background-color: #000000ff;
 	color:white;
 	-webkit-text-stroke: 1px var(--cl);
@@ -70,7 +69,21 @@ input[type="submit"], input[type="file"]::file-selector-button, button,label, in
 	justify-content: center;
 	align-items: center;
 }
+#packing {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.7);
+	justify-content: center;
+	align-items: center;
+}
 #overlay-content {
+	width: 60%;
+	height: 24%;
+	font-size: 110%;
 	background-color: #333;
 	padding: 20px;
 	border-radius: 10px;
@@ -80,5 +93,11 @@ input[type="submit"], input[type="file"]::file-selector-button, button,label, in
 	function toggleOverlay() {
 			var overlay = document.getElementById('overlay');
 			overlay.style.display = (overlay.style.display === 'none' || overlay.style.display === '') ? 'flex' : 'none';
+		}
+</script>
+<script>
+	function Packing() {
+			var packing = document.getElementById('packing');
+			packing.style.display = (packing.style.display === 'none' || packing.style.display === '') ? 'flex' : 'none';
 		}
 </script>
