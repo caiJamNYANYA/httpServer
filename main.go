@@ -6,7 +6,7 @@ import (
 	// "path"
 	"sort"
 //	"flag"
-	"embed"	
+	"embed"
 	"bufio"
 	 "net"
 	"sync"
@@ -181,8 +181,6 @@ func main() {
 		}
 	}
 	os.Args = args
-
-
 	var ipArgs []string
 	addrs, err := net.InterfaceAddrs()//获取本地ip地
 	for _, addr := range addrs {
@@ -223,14 +221,12 @@ func main() {
 
 	// 打印接收到的数据
 
-	pathArgs := make([]string, 2)//定义存储路径的数组；长度为2用于没有输入参数时定义默认值
-	os.Args[0] = ""
+	var pathArgs []string//定义存储路径的数组；长度为2用于没有输入参数时定义默认值
 
-
-	if (len(os.Args) == 1/*数组第0个元素默认是启动程序*/) || (port != 5050 && len(os.Args) == 3/*加了port参数-p之后长度变成3*/) {
-		pathArgs[1] = "."//定义默认路径为当前目录
+	if (len(os.Args) == 1/*数组第0个元素默认是启动程序*/) {
+		pathArgs = []string{"."}//定义默认路径为当前目录
 	} else {
-		pathArgs = os.Args
+		pathArgs = os.Args[1:]
 	}
 
 	for _, value := range pathArgs {//读取数组获取绝对路径
@@ -244,13 +240,13 @@ func main() {
 		}
 	}
 
-	if (len(pathOrign)) == 1 {//如果没有一个正确路径时退出程序，
+	if (len(pathOrign)) == 0 {//如果没有一个正确路径时退出程序，
 		fmt.Println("\n\x1b[38;5;204m这就是你输入的路径?(_^_)_")
 		rm(homePath)//清除分享目录
 		os.Exit(1)
 	}
 
-	for i := 1 ; i <= len(pathOrign) - 1/*因为数组第0个元素是程序名称，所有原来数组长度为输入的路径+1,如果路径个数为1时，只需要循环一此，以此类推*/; i++ {
+	for i := 0 ; i <= len(pathOrign) - 1/*因为数组第0个元素是程序名称，所有原来数组长度为输入的路径+1,如果路径个数为1时，只需要循环一此，以此类推*/; i++ {
 		fromPath := pathOrign[i]//读取需要链接的原始路径
 		dir, file := filepath.Split(fromPath)//判断根目录避免bug出现
 		var pathName string
@@ -265,12 +261,12 @@ func main() {
 	pathNameArgsFix = argsFix(pathNameArgs)//将重名的链接名称添加前缀…………为什么不能放在for里面喵
 
 	title := true
-	for i, j := 1, 0; i <= len(pathOrign) - 1; i++{
-		fromPath := pathOrign[i]//链接原路径获取
-		toPath := filepath.Join(homePath,pathNameArgsFix[i-1])//链接目录路径
+	for i, j := 0, 0; i <= len(pathOrign) - 1; i++{
+		fromPath := pathOrign[i]//链接原路径获
+		toPath := filepath.Join(homePath,pathNameArgsFix[i])//链接目录路径
 		err := os.Symlink(fromPath, toPath)//创建链接
 		if err != nil {
-			i = 0
+			i = -1
 			j ++
 			if j > 1 {
 				fmt.Print("\x1b[38;5;204m错误！！(≧▽≦)\x1b[0m\n")
@@ -288,7 +284,7 @@ func main() {
 			title = false
 		}
 		fmt.Printf("\n\x1b[38;5;85m\u2605\x1b[38;5;159mfrom\t<--\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],pathOrign[i])
-		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],netAddr + pathNameArgs[i-1])
+		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],netAddr + pathNameArgs[i])
 	}
 
 	var wg sync.WaitGroup
