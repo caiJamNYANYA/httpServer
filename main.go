@@ -38,7 +38,7 @@ var disableList bool
 var disableUpload bool
 var disableTar bool
 
-var clr = [...]int{219,171,213,202,220,208,217,183,211,195,223,225,229,85,86,123,153,189,117,105,177,175,204,218}//这啥呀(_^_)_这是
+var clr = [...]int{211,219,171,213,202,220,208,217,183,195,223,225,86,123,153,189,117,105,177,175,218}//这啥呀(_^_)_这是
 
 func argsFix(arr []string) []string {//为聪明文件名加前缀，以防重名然后出现bug
 	countMap := make(map[string]int)
@@ -135,7 +135,7 @@ func main() {
 			os.Args[i] = replace
 			_, err := fmt.Sscanf(param[2:len(param)], "%d", &port)//转成数字是为了比较的……
 			if err != nil {
-				fmt.Print("\x1b[38;5;211m喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)\n")
+				fmt.Print("\x1b[38;5;229m喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)\n")
 			}
 		}
 		switch param {
@@ -150,7 +150,7 @@ func main() {
 			os.Args[i+1] = replace
 			_, err := fmt.Sscanf(portStr, "%d", &port)//转成数字是为了比较的……
 			if err != nil {
-				fmt.Print("\x1b[38;5;211m喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)\n")
+				fmt.Print("\x1b[38;5;229m喂！你有在输入端口吗(\"▔□▔)/\n错误的端口(´･_･`)\n")
 			}
 		case "--disable-list" :
 			disableList = true
@@ -189,18 +189,36 @@ func main() {
 		ipArgs = append(ipArgs, strings.Split(addr.String(), "/")[0])//添加到数
 	}
 	if err != nil {
-		ipArgs = append(ipArgs,"")
+//		ipArgs = append(ipArgs,"")
 		ipArgs = append(ipArgs,"127.0.0.1")
-		cPrint(fmt.Sprint(err) + " 显示改为" + ipArgs[1] + " ;)")
+		fmt.Print("\x1b[38;5;229m",fmt.Sprint(err), " 显示改为", ipArgs[0], " ;)\n")
+	} else {
+		var args []string
+		for _, addr := range ipArgs {
+			ip := strings.Split(addr,".")[0]
+			if ip == "192"||ip == "172"||ip == "10" {
+				args = append(args, addr)
+			}
+		}
+		ipArgs = args
 	}
 
 
-	textColoful("Ciallo～(∠・ω< )⌒☆\n\n")
 	randomNumbr = ("____" + randomString(12))//共享文件夹名称
-	homePath = fmt.Sprintf("%s/%s",os.Getenv("HOME"),randomNumbr)//共享文件夹绝对路径
-	netAddr = fmt.Sprintf("%s:%d/",ipArgs[1],port)
-	os.Mkdir(homePath, os.ModePerm)//创建共享文件夹
-	tarPath = fmt.Sprintf("%s/%s",homePath,randomNumbr)//共享
+	homePath = filepath.Join(os.Getenv("HOME"),randomNumbr)
+	netAddr = fmt.Sprintf("%s:%d/",ipArgs[0],port)
+	err = os.Mkdir(homePath, os.ModePerm)//创建共享文件夹
+	if err != nil {
+		homePath = filepath.Join(".",randomNumbr)
+		err = os.Mkdir(homePath, os.ModePerm)
+		if err != nil {
+			cPrint("请检查你是否有权限创建目录 (_ _;)")
+			os.Exit(0)
+		} else {
+			fmt.Println("\x1b[38;5;229m创建分享目录在home目录失败 (;_; ，已在当前目录重新创建共享目录(^_-)")
+		}
+	}
+	tarPath = filepath.Join(homePath,randomNumbr)
 	os.Mkdir(tarPath, os.ModePerm)
 
 	// 打印接收到的数据
@@ -220,14 +238,14 @@ func main() {
 		_, err := os.Stat(absDir)//检查绝对路径是否有效，只输出有效路径
 		if err != nil {
 			//该路径不存在
-			fmt.Print("\x1b[38;5;211m):\t" + absDir + "\n")
+			fmt.Print("\x1b[38;5;229m):\t" + absDir + "\n")
 		} else {
 			pathOrign = append(pathOrign,absDir)//将有效的路径存储进pathOrign数组
 		}
 	}
 
 	if (len(pathOrign)) == 1 {//如果没有一个正确路径时退出程序，
-		fmt.Println("\n\x1b[38;5;211m这就是你输入的路径?(_^_)_")
+		fmt.Println("\n\x1b[38;5;204m这就是你输入的路径?(_^_)_")
 		rm(homePath)//清除分享目录
 		os.Exit(1)
 	}
@@ -246,19 +264,31 @@ func main() {
 
 	pathNameArgsFix = argsFix(pathNameArgs)//将重名的链接名称添加前缀…………为什么不能放在for里面喵
 
-	for i := 1 ; i <= len(pathOrign) - 1; i++ {
-
-		fmt.Printf("\n\x1b[38;5;85m\u2605\x1b[38;5;159mfrom\t<--\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],pathOrign[i])
-		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],netAddr + pathNameArgs[i-1])
-
+	title := true
+	for i, j := 1, 0; i <= len(pathOrign) - 1; i++{
 		fromPath := pathOrign[i]//链接原路径获取
-		toPath := fmt.Sprintf("%s/%s",homePath,pathNameArgsFix[i-1])//链接目录路径
+		toPath := filepath.Join(homePath,pathNameArgsFix[i-1])//链接目录路径
 		err := os.Symlink(fromPath, toPath)//创建链接
 		if err != nil {
-			fmt.Println(err)
+			i = 0
+			j ++
+			if j > 1 {
+				fmt.Print("\x1b[38;5;204m错误！！(≧▽≦)\x1b[0m\n")
+				rm(homePath)
+				os.Exit(0)
+			}
+			fmt.Print("\x1b[38;5;229m在分享目录创建链接失败 (;_; ，已在当前目录重新创建分享目录(^_-)\x1b[0m\n")
 			rm(homePath)
-			os.Exit(1)
+			homePath = filepath.Join(".",randomNumbr)
+			os.Mkdir(homePath, os.ModePerm)
+			continue
 		}
+		if title {
+			textColoful("Ciallo～(∠・ω< )⌒☆\n")
+			title = false
+		}
+		fmt.Printf("\n\x1b[38;5;85m\u2605\x1b[38;5;159mfrom\t<--\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],pathOrign[i])
+		fmt.Printf("\x1b[38;5;85m\u2605\x1b[38;5;159mto\t-->\x1b[38;5;%dm  %s\n",clr[rand.Intn(len(clr))],netAddr + pathNameArgs[i-1])
 	}
 
 	var wg sync.WaitGroup
@@ -275,17 +305,20 @@ func main() {
 				if port < 1024 {
 					errstr := fmt.Sprintf("%v",err)
 					if (errstr[len(errstr)-2:]) == "ed" {
-						fmt.Println("\x1b[38;5;211m你什么身份呀(╯°口°)╯(┴—┴这个>端口也是你能用的！")
+						fmt.Println("\x1b[38;5;204m你什么身份呀(╯°口°)╯(┴—┴这个>端口也是你能用的！")
 						fmt.Println("已清理产物 (゜o゜)",randomNumbr)
+						fmt.Print("\x1b[0m")
 						os.Exit(1)
 					} else {
-						fmt.Println("\x1b[38;5;211m该端口无了 ≡≡ﾍ( ´Д`)ﾉ")
+						fmt.Println("\x1b[38;5;204m该端口无了 ≡≡ﾍ( ´Д`)ﾉ")
 						fmt.Println("已清理产物 (゜o゜)",randomNumbr)
+						fmt.Print("\x1b[0m")
 						os.Exit(1)
 					}
 				} else {
-					fmt.Println("\x1b[38;5;211m该端口无了 ≡≡ﾍ( ´Д`)ﾉ")
+					fmt.Println("\x1b[38;5;204m该端口无了 ≡≡ﾍ( ´Д`)ﾉ")
 					fmt.Println("已清理产物 (゜o゜)",randomNumbr)
+					fmt.Print("\x1b[0m")
 					os.Exit(1)
 				}
 			}
@@ -311,6 +344,7 @@ func main() {
 			if err == readline.ErrInterrupt || fmt.Sprint(err) == "EOF" {
 				rm(homePath)
 				fmt.Println("\n\x1b[38;5;85m已清理产物（￣▽￣）",randomNumbr)
+				fmt.Print("\x1b[0m")
 				os.Exit(0)
 			}
 			if line == "" {
@@ -343,7 +377,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("m") == "gz" || r.URL.Query().Get("m") =="xz" || r.URL.Query().Get("m") == "t" || r.URL.Query().Get("m") == "tgz" {//重定向tar.gz压缩包
 		if disableTar {
 			if r.Header.Get("User-Agent")[:1] == "c" {
-				fmt.Fprint(w,"\x1b[38;5;211m")
+				fmt.Fprint(w,"\x1b[38;5;204m")
 			}
 			fmt.Fprint(w,"下载失败(ーー゛)\t已禁用打包下载")
 			return
@@ -423,16 +457,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	} else if r.URL.Query().Get("up") != "" {
 		if disableUpload {
 			if r.Header.Get("User-Agent")[:1] == "c" {
-				fmt.Fprint(w,"\x1b[38;5;211m")
+				fmt.Fprint(w,"\x1b[38;5;204m")
 			}
 			fmt.Fprint(w, "上传失败 ):\t已禁用上传(￣ー￣)ﾆﾔﾘ\n")
 			return
 		}
 		file, handler, err := r.FormFile("file")
 		if err != nil {
-			fmt.Print("\x1b[38;5;211m上传失败 ):\t", err,"\n")
+			fmt.Print("\x1b[38;5;204m上传失败 ):\t", err,"\n")
 			if r.Header.Get("User-Agent")[:1] == "c" {
-				fmt.Fprint(w,"\x1b[38;5;211m")
+				fmt.Fprint(w,"\x1b[38;5;204m")
 			}
 			fmt.Fprint(w, "上传失败 ):\t", http.StatusBadRequest)
 			return
@@ -443,9 +477,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		defer destFile.Close()
 		_, err = io.Copy(destFile, file)
 		if err != nil {
-			fmt.Print("\x1b[38;5;211m上传失败 ):\t", err, "\t",filepath.Join(upDir, handler.Filename),"\n")
+			fmt.Print("\x1b[38;5;204m上传失败 ):\t", err, "\t",filepath.Join(upDir, handler.Filename),"\n")
 			if r.Header.Get("User-Agent")[:1] == "c" {
-				fmt.Fprint(w,"\x1b[38;5;211m")
+				fmt.Fprint(w,"\x1b[38;5;204m")
 			}
 			fmt.Fprint(w,"上传失败 ):\t", http.StatusInternalServerError, "\t",filepath.Join(upDir, handler.Filename),"\n")
 			return
@@ -464,7 +498,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 ///*
 		fileInfo, err := os.Lstat(path)
 			if err != nil {
-				fmt.Printf("\x1b[38;5;%dm请求路径 ):\t%s\n", clr[rand.Intn(len(clr))],r.URL.Path)//打印请求
+				fmt.Printf("\x1b[38;5;204m请求路径 ):\t%s\n",r.URL.Path)//打印请求
 				if r.Header.Get("User-Agent")[:1] == "c" {//判断是否使用curl
 					fmt.Fprintf(w,"\x1b[38;5;%dm",clr[rand.Intn(len(clr))])
 				}
@@ -525,13 +559,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 					fmt.Fprint(w,fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]), dirName[i], "/\n")
 				}
 				for i, _ := range fileLink {//打印文件列表
-					fmt.Fprint(w,fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]), fileName[i], "/\n")
+					fmt.Fprint(w,fmt.Sprintf("\x1b[38;5;%dm",clr[rand.Intn(len(clr))]), fileName[i], "\n")
 				}
 
 			} else {
 				w.Header().Set("Content-Type", "text/html")
 				fmt.Fprint(w,htmlcode)
-				fmt.Fprint(w,`<div id="floatingButton" onclick="toggleOverlay()">Upload</div>
+
+				fmt.Fprint(w,`
+				<div id="floatingButton" onclick="toggleOverlay()">Upload</div>
+
+				<div id="floatingButton" style="bottom: 120px;right: 20px;" onclick="Packing()">Paking</div>
 				<div id="overlay">
 				<div id="overlay-content">
 				<form id="myForm" action="/?up=` + path + `" method="post" enctype="multipart/form-data">
@@ -545,12 +583,22 @@ func handler(w http.ResponseWriter, r *http.Request) {
 				<br>
 				<input type="submit" value="上传（￣▽￣）" />
 				</form>
-				<div style="text-align: right;">
-				<button onclick="toggleOverlay()" style="background-color:#333;border: none;">x</button>
-				</div>
+				<div style="text-align: right;"><button onclick="toggleOverlay()" style="background-color:#333;border: none;">x</button></div>
 				</div>
 				</div>
 				`)
+
+				fmt.Fprint(w,`
+				<div id="packing">
+				<div id="overlay-content" style="height: 16%;font-size: 120%">
+				<a href="`, r.URL.Path, `?m=t">tar</a><br />
+				<a href="`, r.URL.Path, `?m=gz">tar.gz</a><br />
+				<a href="`, r.URL.Path, `?m=xz">tar.xz</a><br />
+				<div style="text-align: right;"><button onclick="Packing()" style="background-color:#333;border: none;">x</button></div>
+				</div>
+				</div>
+				`)
+
 				fmt.Fprint(w,"<h1>", r.URL.Path, "</h1>", "<pre><ul><a href=\"../\">../</a></ul>")
 				for i, dir := range dirLink {
 					fmt.Fprint(w,"<ul><a href='", dir, "/'>", dirName[i], "/</a><br /></ul>")
@@ -564,11 +612,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		} else {//当访问的网络路径是文件类型
 			http.ServeFile(w, r, path)
 		}
-//*/
-		// /*
-		//你要用来做html网页服务器可以删掉上面的
-
-		// */
 	}
 }
 
